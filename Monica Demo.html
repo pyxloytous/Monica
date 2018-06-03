@@ -1,0 +1,201 @@
+<!DOCTYPE html  PUBLIC '-//W3C//DTD XHTML 1.0 Transitional//EN'  'http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd'><html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+<title>Freefloat.py</title>
+</head><body>A small Demonstration of Monica is here <br/>
+<br/>
+Monica.py -h<br/>
+<br/>
+<img src="screenshot.png"/><br/>
+<br/>
+first we will create pattern<br/>
+<br/>
+<img src="screenshot 2.png"/><br/>
+<br/>
+give pattern size it requires to create pattern<br/>
+<br/>
+<img src="screenshot 4.png"/><br/>
+<img src="screenshot 3.png"/><br/>
+<br/>
+<br/>
+This pattern is to be placed in payload to send to target system to crash it and see where what part of this pattern has got overwritten on any particular CPU Register<br/>
+<br/>
+<img src="screenshot 5.png"/><br/>
+Exploit executed<br/>
+<br/>
+<img src="screenshot 6.png"/><br/>
+<br/>
+after exploit execution crash of application and Excpeion in debugger<br/>
+<br/>
+<img src="screenshot 7.png"/><br/>
+<br/>
+ESP got overwritten with pattern<br/>
+<img src="screenshot 8.png"/><br/>
+<br/>
+<br/>
+EIP also got overwritten with pattern<br/>
+<img src="screenshot 9.png"/><br/>
+<br/>
+<br/>
+Finding offset now for 37374546 substring got overwritten into EIP<br/>
+<br/>
+<img src="screenshot 11.png"/><br/>
+<img src="screenshot 10.png"/><br/>
+<br/>
+p = 37374546<br/>
+r = EIP<br/>
+f = file path where patter was saved when it was created earlier<br/>
+<br/>
+Every time monica runs it tells about the directory what it has created to store files - just the pattern file there<br/>
+<br/>
+<img src="screenshot 12.png"/><br/>
+<br/>
+<img src="screenshot 13.png"/><br/>
+<br/>
+<br/>
+<span style="background-color: #ffff00">root@kali:~/Monica#python monica.py find_offset -p 37374546 -r EIP -f /root/Monica/Bad_Char_Dir/Pattern_File_1018</span><br/>
+<br/>
+<img src="screenshot 14.png"/><br/>
+<img src="screenshot 15.png"/><br/>
+<br/>
+<br/>
+If asks for EIP because the subpattern copied from EIP is overwritten in HEX format so this checks if subpattern is related to EIP. if yes, it has to be first converted to ASCII as all pattern string comprised of ASCII. Then reverse it as data in EIP is written in little Endian fashon<br/>
+<br/>
+This piece of code on monica does all this<br/>
+<br/>
+<img src="screenshot 16.png"/><br/>
+<br/>
+<br/>
+so the EIP offset is foud at 246 means if 4 byte data is sent with 246 byte junk EIP will be overwritten<br/>
+<br/>
+lets check<br/>
+<br/>
+<img src="screenshot 17.png"/><br/>
+<br/>
+Check CPU registers including EIP<br/>
+<img src="screenshot 18.png"/><br/>
+<br/>
+EIP got overwritten with 42424242 <br/>
+42 is hex form of 'B'<br/>
+<br/>
+ESP is overwritten with rest of the juks called res_junk make of char 'C', 43 in hex form<br/>
+<br/>
+Similarly ESP overwritten pattern's offeset can also be determined. <br/>
+<br/>
+copy the first four bytes of ESP in feed the same to monica with its required arguments<br/>
+<br/>
+First four bytes in ESP are  7eCe<br/>
+<br/>
+<img src="screenshot 19.png"/><br/>
+<br/>
+<img src="screenshot 20.png"/><br/>
+<img src="screenshot 21.png"/><br/>
+<br/>
+Yes it say ESP held subpattern offset is 258<br/>
+<br/>
+246 junk + 4 bytes EIP + 8 byte GAP = 258<br/>
+<br/>
+from 259th position ESP starts. lets check<br/>
+<br/>
+<img src="screenshot 22.png"/><br/>
+<br/>
+<br/>
+<img src="screenshot 23.png"/><br/>
+<br/>
+<br/>
+EIP is overwritten with 'B' (hex 42)<br/>
+ESP starts with 4 bytes of As. all ok so far<br/>
+<br/>
+So far so good. Now its time to check bad chars. the characters those break the string copy process when data is being overwritten to memory<br/>
+<br/>
+Bad char identification is necessary to ensure our payload is sent copied to memory completete without any break<br/>
+<br/>
+<br/>
+Monica bad char identification functionality comes here to our rescue with with following options<br/>
+<br/>
+1. fresh_badchar_pattern  - creates fresh bad char pattern comprised of all possible 256 ASCII chars<br/>
+<br/>
+2. compare               - When freshly generated bad char pattern is sent to the vulnerable application as a paylot to it it crashed. from its memory a copy of sent bad char payload is   <br/>
+copied and compared with the freshly generated bad char pattern. That gives difference and identify what char caused this difference<br/>
+<br/>
+3. nobad_pattern           - Again repeated the process of bad char creation but this time identified bad char is supplied to the mechanism to exclude when new bad char is generated<br/>
+<br/>
+<br/>
+1. Generating fresh badchar pattern<br/>
+<br/>
+<img src="screenshot 24.png"/><br/>
+<img src="screenshot 25.png"/><br/>
+<br/>
+<br/>
+in this bad char pattern null bytes (\x00) is already removed now this bad char pattern needs to be sent to target as a payload to check if all characters in the this pattern gets copied<br/>
+if not means somethign is terminating the copy process and that needs to be identified<br/>
+<br/>
+After the exploit is executed and payload is deleveres the target application process crashes<br/>
+<br/>
+<img src="screenshot 27.png"/><br/>
+<br/>
+remember stack alsway starts with the ESP pointer where our 4 bytes As is residing now<br/>
+<br/>
+<img src="screenshot 26.png"/><br/>
+<br/>
+follow the stack in the memory dump to get clear picture<br/>
+<br/>
+<img src="screenshot 28.png"/><br/>
+<br/>
+<br/>
+locate the start of the bad_char payload string in memory dump area, copy from here to a large amount of data after it and save in a file named 'mem_file.txt'<br/>
+Remember it starts with possibiliy \x01 (\x00 - null byte already removed)<br/>
+<br/>
+<img src="screenshot 29.png"/><br/>
+<br/>
+Now call monica to help you comparing copy of bad char pattern created and the copy of the same from target machine's memory<br/>
+<br/>
+2. compare<br/>
+<br/>
+<img src="screenshot 31.png"/><br/>
+<img src="screenshot 30.png"/><br/>
+<br/>
+now pass file mem_file.txt to monica<br/>
+<br/>
+<img src="screenshot 32.png"/><br/>
+<img src="screenshot 33.png"/><br/>
+<br/>
+here you may see \x0a is a bad char identified<br/>
+data from \x01 till \x09 properly copied to memory but after it \x0a was comings thats worked as string terminator for this application process nd rest of the data did get copied<br/>
+<br/>
+Now its time to regenerate new bad char pattern but this time excluding identified bad char<br/>
+<br/>
+call monica and pass a sub-command 'nobad-pattern'<br/>
+<br/>
+3. nobad_pattern<br/>
+<br/>
+<img src="screenshot 34.png"/><br/>
+<img src="screenshot 35.png"/><br/>
+<br/>
+passing the identified bad char perviously will generate new badchar pattern free of the identified bad char that is in this context '\x0a'<br/>
+<br/>
+<img src="screenshot 36.png"/><br/>
+<img src="screenshot 37.png"/><br/>
+<br/>
+Bad char recreated but this time \x0a is not prestnt after \x09<br/>
+<br/>
+repeat the same process till all bad char identified and finally all payload is overwritten in memory entirely without ny break<br/>
+<br/>
+Next identified bad char <br/>
+<br/>
+<img src="screenshot 38.png"/><br/>
+<br/>
+next badchar_pattern with removal of newly identified bad char \x0d with previouls identified bad char \x0a<br/>
+<br/>
+<img src="screenshot 39.png"/><br/>
+<br/>
+After execution of the loaded payload containgin regernrated bad char here is the result <br/>
+<img src="screenshot 40.png"/><br/>
+<br/>
+<br/>
+Now finally it can be seen that all bad char pattern sent as payload got copied this time as confirm by the script and Bad char is not presnt in the output this time<br/>
+<br/>
+Since this is now a exploit development turorial but demonstration of Monica's different functionality, the artical on Mona ends here<br/>
+<br/>
+<br/>
+</body></html>
